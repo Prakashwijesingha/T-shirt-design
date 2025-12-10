@@ -17,7 +17,7 @@ export const generateTryOn = async (
   try {
     const { type, buttonColor, tippingLines, enableChestStripe, accentColor } = config;
     
-    const garmentName = type === 'polo' ? "Polo Shirt with a structured collar" : "Crew Neck T-shirt";
+    const garmentName = type === 'polo' ? "Polo Shirt" : "Crew Neck T-shirt";
     
     // Explicit details for better generation
     let garmentDetail = "";
@@ -37,16 +37,23 @@ export const generateTryOn = async (
       accentDetail += ` There is a prominent ${accentColor} horizontal stripe running across the chest.`;
     }
 
+    // Specific instruction to fix the "ladies shirt" bug
+    // We explicitly tell the AI to use the standard/unisex cut even for females.
+    const fitInstruction = gender === 'female' 
+      ? "IMPORTANT: The model is wearing a STANDARD FIT UNISEX shirt. Do NOT generate a dress, crop top, or blouse. The hem must end at the hips. Keep the sleeves standard length. It must look exactly like the mens version but on a female model."
+      : "The fit should be a standard tailored fit.";
+
     const prompt = `
       Create a high-end, photorealistic 3D-style fashion studio photography of a ${gender} model wearing this specific ${garmentName}.
       
       Key Requirements:
       1. THE SHIRT: **It is a ${type.toUpperCase()}**. ${garmentDetail} ${accentDetail}
+         ${fitInstruction}
          Must perfectly match the input design colors and logos provided in the image. 
          The fabric should look premium, like high-quality cotton or pique mesh.
          Show realistic folds, lighting, and texture.
       
-      2. THE MODEL: Professional fashion model, confident pose, facing forward or slight angle. 
+      2. THE MODEL: Professional ${gender} fashion model, confident pose, facing forward. 
          Skin texture should be hyper-realistic. 
       
       3. ENVIRONMENT: Clean, modern studio background (soft grey or white). 
