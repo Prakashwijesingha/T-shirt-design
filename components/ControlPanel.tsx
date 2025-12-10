@@ -23,11 +23,21 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ config, updateConfig
     }
   };
 
+  const getTippingLabel = (num: number) => {
+    switch (num) {
+      case 0: return 'None';
+      case 1: return 'Single';
+      case 2: return 'Double';
+      case 3: return 'Triple';
+      default: return '';
+    }
+  };
+
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-3xl p-6 h-full shadow-xl overflow-y-auto custom-scrollbar">
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-xl font-bold text-white">Configuration</h2>
-        <span className="px-3 py-1 bg-slate-700 rounded-full text-xs font-medium text-slate-300">v2.8</span>
+        <span className="px-3 py-1 bg-slate-700 rounded-full text-xs font-medium text-slate-300">v2.9</span>
       </div>
 
       {/* Style Selection */}
@@ -103,10 +113,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ config, updateConfig
         <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-700/50">
           <label className="block text-sm font-semibold text-slate-300 mb-4">Accents & Stripes</label>
           
-          {/* Tipping Lines Selector */}
+          {/* Tipping Lines Selector - Updated Labels */}
           <div className="mb-5">
             <span className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-2 block">
-              Collar & Cuff Lines
+              Collar & Cuff Style
             </span>
             <div className="flex bg-slate-800 rounded-xl p-1 border border-slate-700">
               {[0, 1, 2, 3].map((num) => (
@@ -119,7 +129,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ config, updateConfig
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                   }`}
                 >
-                  {num === 0 ? 'None' : `${num} Line${num > 1 ? 's' : ''}`}
+                  {getTippingLabel(num)}
                 </button>
               ))}
             </div>

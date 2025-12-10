@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Gender, ShirtConfig } from '../types';
 import { generateTryOn } from '../services/geminiService';
-import { Loader2, Shirt, User, X } from 'lucide-react';
+import { Loader2, Shirt, User, X, Download } from 'lucide-react';
 
 interface TryOnModalProps {
   isOpen: boolean;
@@ -33,6 +33,17 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({ isOpen, onClose, designI
       setError(err.message || "Failed to generate try-on image. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (resultImage) {
+      const link = document.createElement('a');
+      link.href = resultImage;
+      link.download = `nexus-tryon-${config.type}-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
 
@@ -109,8 +120,8 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({ isOpen, onClose, designI
         </div>
 
         {/* Right Side: Preview */}
-        <div className="w-full md:w-2/3 bg-slate-50 relative flex items-center justify-center p-6 min-h-[400px]">
-           <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-white/80 rounded-full hover:bg-white transition-colors hidden md:block z-10">
+        <div className="w-full md:w-2/3 bg-slate-50 relative flex flex-col items-center justify-center p-6 min-h-[400px]">
+           <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-white/80 rounded-full hover:bg-white transition-colors hidden md:block z-10 shadow-sm">
               <X className="w-5 h-5 text-slate-600" />
            </button>
 
@@ -121,11 +132,20 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({ isOpen, onClose, designI
                <p className="text-xs text-slate-400 mt-2">This may take a few seconds</p>
              </div>
            ) : resultImage ? (
-             <img 
-              src={resultImage} 
-              alt="AI Generated Try On" 
-              className="max-w-full max-h-[80vh] rounded-lg shadow-lg object-contain"
-            />
+             <div className="relative w-full h-full flex flex-col items-center">
+                <img 
+                  src={resultImage} 
+                  alt="AI Generated Try On" 
+                  className="max-w-full max-h-[70vh] rounded-lg shadow-lg object-contain mb-6"
+                />
+                <button 
+                  onClick={handleDownload}
+                  className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-full hover:bg-slate-800 transition-colors shadow-lg"
+                >
+                  <Download className="w-5 h-5" />
+                  Download Photo
+                </button>
+             </div>
            ) : (
              <div className="text-center text-slate-400">
                <div className="w-20 h-20 bg-slate-200 rounded-full mx-auto mb-4 flex items-center justify-center">
