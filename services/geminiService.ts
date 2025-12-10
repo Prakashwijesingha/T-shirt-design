@@ -22,36 +22,44 @@ export const generateTryOn = async (
     // Explicit details for better generation
     let garmentDetail = "";
     if (type === 'polo') {
-      garmentDetail = `Ensure the collar is structured. The buttons on the placket must be ${buttonColor} in color.`;
+      garmentDetail = `Ensure the collar is structured with a button placket. The buttons are ${buttonColor}.`;
     } else {
       garmentDetail = "Ensure it has a round crew neckline.";
     }
 
-    // Add accent details to prompt
+    // Add accent details to prompt - MADE STRONGER
     let accentDetail = "";
     if (tippingLines > 0) {
-      const countText = tippingLines === 1 ? "single" : tippingLines === 2 ? "double" : "triple";
-      accentDetail += ` The shirt features distinct ${countText} ${accentColor} tipping stripes on the collar edges and sleeve cuffs.`;
+      const countText = tippingLines === 1 ? "EXACTLY ONE (Single)" : tippingLines === 2 ? "EXACTLY TWO (Double)" : "EXACTLY THREE (Triple)";
+      accentDetail += ` VISUAL PRIORITY: The collar edges and sleeve cuffs have ${countText} distinct ${accentColor} tipping stripes. You MUST render exactly ${tippingLines} line(s) as seen in the source image.`;
+    } else {
+      accentDetail += " The collar and cuffs are solid colors with NO stripes.";
     }
+
     if (enableChestStripe) {
       accentDetail += ` There is a prominent ${accentColor} horizontal stripe running across the chest.`;
     }
 
-    // Specific instruction to fix the "ladies shirt" bug
-    // We explicitly tell the AI to use the standard/unisex cut even for females.
+    // Specific instruction to fix the "too long" issue and ensure comfortable fit
+    // We explicitly define the length to be standard (hip level) and the fit to be comfortable/regular.
+    // For females, we strictly enforce the UNISEX nature of the detailing to prevent "feminizing" the collar (removing stripes).
     const fitInstruction = gender === 'female' 
-      ? "IMPORTANT: The model is wearing a STANDARD FIT UNISEX shirt. Do NOT generate a dress, crop top, or blouse. The hem must end at the hips. Keep the sleeves standard length. It must look exactly like the mens version but on a female model."
-      : "The fit should be a standard tailored fit.";
+      ? "IMPORTANT: The garment is a STANDARD LENGTH UNISEX T-SHIRT. It is NOT a dress, tunic, or blouse. The hemline MUST end clearly at the hips/belt line. The fit is 'Regular & Comfortable'. CRITICAL: You must preserve the specific collar construction and STRIPING DETAILS from the input image. Do not change the collar style to a feminine cut. Keep the masculine/unisex collar and cuff details exactly."
+      : "The fit is a MODERN COMFORTABLE FIT (Regular Fit). The length is standard, ending at the hip/belt line, NOT long-line or oversized. It should drape naturally and comfortably without looking baggy or too long.";
 
     const prompt = `
       Create a high-end, photorealistic 3D-style fashion studio photography of a ${gender} model wearing this specific ${garmentName}.
       
       Key Requirements:
-      1. THE SHIRT: **It is a ${type.toUpperCase()}**. ${garmentDetail} ${accentDetail}
+      1. THE SHIRT: **It is a ${type.toUpperCase()}**. ${garmentDetail} 
+         ${accentDetail}
          ${fitInstruction}
-         Must perfectly match the input design colors and logos provided in the image. 
-         The fabric should look premium, like high-quality cotton or pique mesh.
-         Show realistic folds, lighting, and texture.
+         
+         STRICT VISUAL ADHERENCE:
+         - Match the input image design EXACTLY.
+         - If the input shows stripes on the collar, you MUST render them.
+         - If the input shows a logo, place it exactly as shown.
+         - The fabric should look premium, like high-quality cotton or pique mesh.
       
       2. THE MODEL: Professional ${gender} fashion model, confident pose, facing forward. 
          Skin texture should be hyper-realistic. 
