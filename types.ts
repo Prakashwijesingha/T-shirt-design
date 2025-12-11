@@ -1,6 +1,17 @@
 export type ShirtType = 'polo' | 'crew';
 export type Gender = 'male' | 'female';
 
+declare global {
+  interface AIStudio {
+    hasSelectedApiKey: () => Promise<boolean>;
+    openSelectKey: () => Promise<void>;
+  }
+
+  interface Window {
+    aistudio?: AIStudio;
+  }
+}
+
 export interface ShirtConfig {
   type: ShirtType;
   baseColor: string;

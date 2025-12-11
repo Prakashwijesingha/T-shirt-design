@@ -1,18 +1,18 @@
 import { GoogleGenAI } from "@google/genai";
 import { ShirtConfig } from "../types";
 
-const apiKey = process.env.API_KEY || '';
-
-const ai = new GoogleGenAI({ apiKey });
-
 export const generateTryOn = async (
   imageBase64: string, 
   gender: 'male' | 'female',
   config: ShirtConfig
 ): Promise<string> => {
+  // CRITICAL: Instantiate Client inside the function to capture the latest API Key
+  // selected by the user via window.aistudio.
+  const apiKey = process.env.API_KEY || '';
   if (!apiKey) {
-    throw new Error("API Key is missing.");
+    throw new Error("API Key is missing. Please select a key.");
   }
+  const ai = new GoogleGenAI({ apiKey });
 
   try {
     const { type, buttonColor, tippingLines, enableChestStripe, accentColor } = config;
@@ -40,12 +40,9 @@ export const generateTryOn = async (
       accentDetail += ` There is a prominent ${accentColor} horizontal stripe running across the chest.`;
     }
 
-    // Specific instruction to fix the "too long" issue and ensure comfortable fit
-    // We explicitly define the length to be standard (hip level) and the fit to be comfortable/regular.
-    // For females, we strictly enforce the UNISEX nature of the detailing to prevent "feminizing" the collar (removing stripes).
     const fitInstruction = gender === 'female' 
-      ? "IMPORTANT: The garment is a STANDARD LENGTH UNISEX T-SHIRT. It is NOT a dress, tunic, or blouse. The hemline MUST end clearly at the hips/belt line. The fit is 'Regular & Comfortable'. CRITICAL: You must preserve the specific collar construction and STRIPING DETAILS from the input image. Do not change the collar style to a feminine cut. Keep the masculine/unisex collar and cuff details exactly."
-      : "The fit is a MODERN COMFORTABLE FIT (Regular Fit). The length is standard, ending at the hip/belt line, NOT long-line or oversized. It should drape naturally and comfortably without looking baggy or too long.";
+      ? "IMPORTANT: The garment is a STANDARD LENGTH UNISEX T-SHIRT. It is NOT a dress, tunic, or blouse. The hemline MUST end clearly at the hips/belt line. The fit is 'Regular & Comfortable'. CRITICAL: You must preserve the specific collar construction and STRIPING DETAILS from the input image."
+      : "The fit is a MODERN COMFORTABLE FIT (Regular Fit). The length is standard, ending at the hip/belt line, NOT long-line or oversized.";
 
     const prompt = `
       Create a high-end, photorealistic 3D-style fashion studio photography of a ${gender} model wearing this specific ${garmentName}.
@@ -70,8 +67,9 @@ export const generateTryOn = async (
       Output should look like a professional e-commerce product shot from a luxury brand.
     `;
 
+    // Using Gemini 3 Pro (Nano Banana Pro)
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: 'gemini-3-pro-image-preview',
       contents: {
         parts: [
           {
@@ -84,6 +82,12 @@ export const generateTryOn = async (
             text: prompt
           }
         ]
+      },
+      config: {
+        imageConfig: {
+          aspectRatio: '3:4', // Standard portrait for fashion
+          imageSize: '1K'
+        }
       }
     });
 

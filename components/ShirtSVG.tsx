@@ -13,174 +13,146 @@ const ShirtSVG = forwardRef<SVGSVGElement, ShirtSVGProps>(({ config, className }
     tippingLines, enableChestStripe, accentColor 
   } = config;
 
-  // --- Filters for Realism ---
+  // --- DEFINITIONS & FILTERS ---
   const defs = (
     <defs>
-      {/* 1. Fabric Texture (Pique/Jersey) */}
-      <filter id="fabricTexture" x="0%" y="0%" width="100%" height="100%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.6" numOctaves="3" result="noise" />
-        <feColorMatrix type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0   0 0 0 0.04 0" in="noise" result="coloredNoise" />
+      {/* 1. Realistic Fabric Grain */}
+      <filter id="fabricGrain" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="4" result="noise" />
+        <feColorMatrix type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0   0 0 0 0.08 0" in="noise" result="coloredNoise" />
         <feComposite operator="in" in="coloredNoise" in2="SourceGraphic" result="composite" />
         <feBlend mode="multiply" in="composite" in2="SourceGraphic" />
       </filter>
 
-      {/* 2. Ribbed Texture for Collars/Cuffs */}
-      <pattern id="ribPattern" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-         <line x1="0" y1="0" x2="0" y2="4" stroke="black" strokeWidth="1" opacity="0.1" />
-      </pattern>
-
-      {/* 3. Deep Drop Shadow */}
-      <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      {/* 2. Soft Drop Shadow for Depth */}
+      <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
         <feGaussianBlur in="SourceAlpha" stdDeviation="6" />
         <feOffset dx="0" dy="8" result="offsetblur" />
         <feComponentTransfer>
-           <feFuncA type="linear" slope="0.2"/>
+           <feFuncA type="linear" slope="0.3"/>
         </feComponentTransfer>
-        <feMerge>
+        <feMerge> 
           <feMergeNode />
-          <feMergeNode in="SourceGraphic" />
+          <feMergeNode in="SourceGraphic" /> 
         </feMerge>
       </filter>
 
-      {/* 4. Inner Shadow for depth */}
-      <filter id="innerDepth">
-        <feOffset dx="0" dy="2" />
-        <feGaussianBlur stdDeviation="2" result="offset-blur" />
-        <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse" />
-        <feFlood floodColor="black" floodOpacity="0.25" result="color" />
-        <feComposite operator="in" in="color" in2="inverse" result="shadow" />
-        <feComposite operator="over" in="shadow" in2="SourceGraphic" />
-      </filter>
+      {/* 3. Volumetric Gradients */}
+      {/* Main Body - Cylindrical Volume */}
+      <linearGradient id="volumetricBody" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#000" stopOpacity="0.6" /> {/* Left Edge Shadow */}
+        <stop offset="20%" stopColor="#fff" stopOpacity="0.05" /> {/* Highlight */}
+        <stop offset="50%" stopColor="#fff" stopOpacity="0.1" /> {/* Center Highlight */}
+        <stop offset="80%" stopColor="#000" stopOpacity="0.1" /> 
+        <stop offset="100%" stopColor="#000" stopOpacity="0.6" /> {/* Right Edge Shadow */}
+      </linearGradient>
+
+      {/* Sleeve Volume */}
+      <linearGradient id="volumetricSleeveLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#000" stopOpacity="0.5" />
+        <stop offset="50%" stopColor="#fff" stopOpacity="0.1" />
+        <stop offset="100%" stopColor="#000" stopOpacity="0.4" />
+      </linearGradient>
+       <linearGradient id="volumetricSleeveRight" x1="100%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#000" stopOpacity="0.5" />
+        <stop offset="50%" stopColor="#fff" stopOpacity="0.1" />
+        <stop offset="100%" stopColor="#000" stopOpacity="0.4" />
+      </linearGradient>
+
+      {/* Inner Neck Depth */}
+      <linearGradient id="innerDepth" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#000" stopOpacity="0.9" />
+        <stop offset="100%" stopColor="#000" stopOpacity="0.3" />
+      </linearGradient>
+
+      {/* Collar Shadow */}
+      <linearGradient id="collarShadow" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stopColor="#000" stopOpacity="0.3" />
+        <stop offset="100%" stopColor="#000" stopOpacity="0" />
+      </linearGradient>
     </defs>
   );
 
-  // --- 3D Geometry Paths (Based on provided mockups) ---
-
-  // Main Torso - Tapered fit
-  const torsoPath = "M115,70 L90,135 L95,460 Q200,475 305,460 L310,135 L285,70 Q200,85 115,70 Z";
-
-  // Sleeves - Angled naturally
-  const leftSleeveBase = "M115,70 L40,150 L75,180 L110,140 L115,70 Z";
-  const rightSleeveBase = "M285,70 L360,150 L325,180 L290,140 L285,70 Z";
-
-  // Chest Stripe Path (Curved to match chest volume)
-  // Located just below the placket/collar area
-  const chestStripePath = "M113,180 Q200,200 287,180 L288,195 Q200,215 112,195 Z";
-
-  // --- Shading Layers (The "3D" effect) ---
+  // --- PATH GEOMETRY ---
   
-  const leftSideShadow = "M90,135 L95,460 Q120,460 120,135 Z";
-  const rightSideShadow = "M310,135 L305,460 Q280,460 280,135 Z";
-  const leftArmpitShadow = "M112,140 Q105,160 125,155 L112,140 Z";
-  const rightArmpitShadow = "M288,140 Q295,160 275,155 L288,140 Z";
+  // A wider, more athletic fit torso
+  const torsoPath = `
+    M 140,90 
+    Q 120,95 110,105   
+    Q 95,140 100,190  
+    Q 102,260 105,360 
+    L 105,460 
+    Q 250,490 395,460
+    L 395,360
+    Q 398,260 400,190
+    Q 405,140 390,105
+    Q 380,95 360,90
+    L 360,90
+    Q 250,110 140,90
+    Z
+  `;
 
-  const fold1 = "M130,200 Q200,220 270,200 L260,240 Q200,260 140,240 Z"; 
-  const fold2 = "M110,380 Q150,420 200,390"; 
-  const fold3 = "M290,380 Q250,420 200,390"; 
-  const verticalFold = "M150,300 Q160,380 150,450";
+  const leftSleevePath = `
+    M 140,90
+    Q 120,95 110,105
+    L 40,190
+    Q 55,210 90,215
+    L 108,200
+    L 100,190
+    Q 120,160 140,155
+    Z
+  `;
 
-  const chestHighlight = "M140,140 Q200,120 260,140 Q270,250 200,260 Q130,250 140,140 Z";
-  const shoulderHighlightLeft = "M115,70 L40,150 L50,150 L120,75 Z";
-  const shoulderHighlightRight = "M285,70 L360,150 L350,150 L280,75 Z";
+  const rightSleevePath = `
+    M 360,90
+    Q 380,95 390,105
+    L 460,190
+    Q 445,210 410,215
+    L 392,200
+    L 400,190
+    Q 380,160 360,155
+    Z
+  `;
 
-  // --- Dynamic Component Calculations ---
+  // Inner back visible through neck
+  const innerBackPath = `
+    M 140,88
+    Q 250,108 360,88
+    L 360,50
+    Q 250,70 140,50
+    Z
+  `;
 
-  // Polo Collar Logic
-  const collarSpread = 60 * collarSize;
-  const leftTip = 200 - collarSpread;
-  const rightTip = 200 + collarSpread;
-  const collarHeight = 125 + (10 * (collarSize - 1));
+  const innerNeckPath = `
+    M 140,90
+    Q 250,110 360,90
+    L 360,80
+    Q 250,100 140,80
+    Z
+  `;
 
-  // Outer edge paths for tipping
-  const poloCollarLeft = `M115,70 Q100,55 ${leftTip},85 L115,${collarHeight} Q157,${collarHeight + 5} 200,${130 + (5 * (collarSize-1))} L200,85 Q157,100 115,70 Z`;
-  const poloCollarRight = `M285,70 Q300,55 ${rightTip},85 L285,${collarHeight} Q243,${collarHeight + 5} 200,${130 + (5 * (collarSize-1))} L200,85 Q243,100 285,70 Z`;
-  
-  const placketPath = "M185,85 L215,85 L215,210 Q200,215 185,210 Z";
-
-  // Cuff Logic
-  const cuffWidth = 15;
-  const leftCuffPath = `M40,150 L75,180 L${75 + cuffWidth},${180 - cuffWidth} L${40 + cuffWidth},${150 - cuffWidth} Z`;
-  const rightCuffPath = `M360,150 L325,180 L${325 - cuffWidth},${180 - cuffWidth} L${360 - cuffWidth},${150 - cuffWidth} Z`;
-
-  // Crew Neck Logic
-  const ribWidth = 12 * collarSize;
-  const crewNeckPath = `M115,70 Q200,115 285,70 Q200,${115 + ribWidth} 115,70 Z`;
-  
-  // --- Tipping Generation Helpers ---
-
-  // Crew Neck Tipping Generator
-  const renderCrewTipping = () => {
+  // --- TIPPING RENDERER ---
+  const renderTipping = (startX: number, startY: number, endX: number, endY: number, count: number, isCuff = false) => {
+    if (count <= 0) return null;
     const lines = [];
-    for (let i = 1; i <= tippingLines; i++) {
-      // Calculate interpolation ratio based on number of lines
-      // For 1 line: ratio 0.5 (middle)
-      // For 2 lines: 0.33, 0.66
-      // For 3 lines: 0.25, 0.5, 0.75
-      const ratio = i / (tippingLines + 1);
-      const currentWidth = ribWidth * ratio;
-      
-      lines.push(
-        <path 
-          key={i}
-          d={`M115,70 Q200,${115 + currentWidth} 285,70`} 
-          stroke={accentColor} 
-          strokeWidth="1.5" 
-          fill="none" 
-          opacity="0.9"
-        />
-      );
-    }
-    return lines;
-  };
-
-  // Polo Cuff Tipping Generator
-  const renderCuffTipping = (startX: number, startY: number, endX: number, endY: number, width: number) => {
-    const lines = [];
-    for (let i = 1; i <= tippingLines; i++) {
-      const ratio = i / (tippingLines + 1);
-      // Interpolate points between top edge and bottom edge of cuff
-      const sX = startX + width * ratio;
-      const sY = startY - width * ratio;
-      const eX = endX + width * ratio;
-      const eY = endY - width * ratio;
-
-      lines.push(
-        <line 
-          key={i}
-          x1={sX} y1={sY} 
-          x2={eX} y2={eY} 
-          stroke={accentColor} 
-          strokeWidth="1.5"
-          opacity="0.9"
-        />
-      );
-    }
-    return lines;
-  };
-
-  // Polo Collar Tipping Generator
-  // Uses slight transforms to create parallel lines
-  const renderCollarTipping = (path: string, side: 'left' | 'right') => {
-    const lines = [];
-    for (let i = 0; i < tippingLines; i++) {
-      // Line 1: Edge
-      // Line 2: Slightly inset
-      // Line 3: More inset
-      const inset = i * 2.5;
-      // Inset direction varies by side
-      const xOffset = side === 'left' ? inset : -inset;
-      const yOffset = inset;
-      
-      lines.push(
-        <path 
-          key={i}
-          d={path} 
-          stroke={accentColor} 
-          strokeWidth="1.5" 
-          fill="none" 
-          transform={`translate(${xOffset}, ${yOffset}) scale(${1 - (i*0.01)})`}
-        />
-      );
+    const spacing = 4;
+    
+    // For cuffs, we draw straight lines between points
+    if (isCuff) {
+       for(let i=0; i<count; i++) {
+           const yOff = (i * spacing) + 2;
+           lines.push(
+               <path 
+                key={i}
+                d={`M ${startX},${startY - yOff} L ${endX},${endY - yOff}`}
+                stroke={accentColor}
+                strokeWidth="2.5"
+                opacity="0.9"
+               />
+           );
+       }
+    } else {
+        // For collar (curved) - handled inside the collar block
     }
     return lines;
   };
@@ -188,120 +160,223 @@ const ShirtSVG = forwardRef<SVGSVGElement, ShirtSVGProps>(({ config, className }
   return (
     <svg 
       ref={ref}
-      viewBox="0 0 400 500" 
+      viewBox="0 0 500 600" 
       className={`w-full h-full ${className}`}
       xmlns="http://www.w3.org/2000/svg"
-      filter="url(#dropShadow)"
+      preserveAspectRatio="xMidYMid meet"
     >
       {defs}
 
-      {/* Apply Base Texture */}
-      <g filter="url(#fabricTexture)">
+      <g filter="url(#softShadow)">
         
-        {/* --- Back Neck Area --- */}
-        <path d="M115,70 Q200,115 285,70" fill="#1e1e1e" />
-        <image 
-            href="https://img.freepik.com/premium-photo/gray-t-shirt-label-tag-mockup_1158030-221.jpg" 
-            x="180" y="75" width="40" height="20" opacity="0.6" 
-        />
+        {/* --- INTERIOR --- */}
+        <path d={innerBackPath} fill="#111" />
+        {/* Label */}
+        <rect x="235" y="65" width="30" height="15" fill="#f5f5f5" rx="2" opacity="0.8" />
+        <text x="250" y="75" textAnchor="middle" fontSize="6" fontFamily="Arial" fill="#333" fontWeight="bold">NEXUS</text>
+        <path d={innerNeckPath} fill={baseColor} filter="brightness(0.6)" />
 
-        {/* --- Sleeves --- */}
-        <path d={leftSleeveBase} fill={sleeveColor} />
-        <path d={rightSleeveBase} fill={sleeveColor} />
 
-        {/* --- Torso --- */}
-        <path d={torsoPath} fill={baseColor} />
+        {/* --- MAIN BODY --- */}
+        <g>
+          {/* Base */}
+          <path d={torsoPath} fill={baseColor} />
+          {/* Texture */}
+          <path d={torsoPath} fill="url(#fabricGrain)" opacity="0.5" style={{ mixBlendMode: 'overlay' }} />
+          {/* Volume */}
+          <path d={torsoPath} fill="url(#volumetricBody)" style={{ mixBlendMode: 'multiply' }} />
+          
+          {/* Bottom Hem Stitching */}
+          <path d="M 105,445 Q 250,475 395,445" fill="none" stroke="black" strokeWidth="1" strokeDasharray="3,3" opacity="0.3" />
+        </g>
 
-        {/* --- Chest Stripe (Optional) --- */}
+
+        {/* --- SLEEVES --- */}
+        <g>
+            {/* LEFT SLEEVE */}
+            <path d={leftSleevePath} fill={sleeveColor} />
+            <path d={leftSleevePath} fill="url(#fabricGrain)" opacity="0.5" style={{ mixBlendMode: 'overlay' }} />
+            <path d={leftSleevePath} fill="url(#volumetricSleeveLeft)" style={{ mixBlendMode: 'multiply' }} />
+            
+            {/* Left Cuff */}
+            <path d="M 40,190 L 90,215 L 94,208 L 44,183 Z" fill={collarColor} />
+            <path d="M 40,190 L 90,215 L 94,208 L 44,183 Z" fill="black" opacity="0.1" /> {/* Cuff Shadow */}
+            {renderTipping(42, 186, 92, 211, tippingLines, true)}
+
+            {/* Inner Sleeve Hole Shadow (Left) */}
+            <path d="M 40,190 Q 65,200 90,215 Q 65,205 40,190" fill="black" opacity="0.4" />
+
+
+            {/* RIGHT SLEEVE */}
+            <path d={rightSleevePath} fill={sleeveColor} />
+            <path d={rightSleevePath} fill="url(#fabricGrain)" opacity="0.5" style={{ mixBlendMode: 'overlay' }} />
+            <path d={rightSleevePath} fill="url(#volumetricSleeveRight)" style={{ mixBlendMode: 'multiply' }} />
+
+            {/* Right Cuff */}
+            <path d="M 460,190 L 410,215 L 406,208 L 456,183 Z" fill={collarColor} />
+            <path d="M 460,190 L 410,215 L 406,208 L 456,183 Z" fill="black" opacity="0.1" />
+            {renderTipping(458, 186, 408, 211, tippingLines, true)}
+
+             {/* Inner Sleeve Hole Shadow (Right) */}
+             <path d="M 460,190 Q 435,200 410,215 Q 435,205 460,190" fill="black" opacity="0.4" />
+        </g>
+
+
+        {/* --- CHEST STRIPE --- */}
         {enableChestStripe && (
-          <path d={chestStripePath} fill={accentColor} style={{ mixBlendMode: 'multiply' }} opacity="0.9" />
+           <g>
+             <path 
+               d="M 103,210 Q 250,230 397,210 L 398,240 Q 250,260 104,240 Z" 
+               fill={accentColor} 
+               opacity="0.95" 
+             />
+             <path 
+               d="M 103,210 Q 250,230 397,210 L 398,240 Q 250,260 104,240 Z" 
+               fill="url(#fabricGrain)" 
+               style={{ mixBlendMode: 'multiply' }} 
+               opacity="0.6"
+             />
+           </g>
         )}
 
-        {/* --- Realistic Shadows & Highlights --- */}
-        <path d={leftSideShadow} fill="black" opacity="0.2" filter="blur(5px)" />
-        <path d={rightSideShadow} fill="black" opacity="0.2" filter="blur(5px)" />
-        <path d={leftArmpitShadow} fill="black" opacity="0.3" filter="blur(3px)" />
-        <path d={rightArmpitShadow} fill="black" opacity="0.3" filter="blur(3px)" />
-        <path d={chestHighlight} fill="white" opacity="0.12" filter="blur(15px)" />
-        <path d={shoulderHighlightLeft} fill="white" opacity="0.15" filter="blur(4px)" />
-        <path d={shoulderHighlightRight} fill="white" opacity="0.15" filter="blur(4px)" />
 
-        <path d={fold1} fill="black" opacity="0.05" filter="blur(8px)" />
-        <path d={fold2} fill="none" stroke="black" strokeWidth="3" opacity="0.05" filter="blur(2px)" />
-        <path d={fold3} fill="none" stroke="black" strokeWidth="3" opacity="0.05" filter="blur(2px)" />
-        <path d={verticalFold} fill="none" stroke="black" strokeWidth="4" opacity="0.03" filter="blur(4px)" />
+        {/* --- REALISTIC FOLDS & DRAPE --- */}
+        <g style={{ mixBlendMode: 'multiply' }} opacity="0.5">
+            {/* Major Drag Lines from Armpits */}
+            <path d="M 140,160 Q 180,220 220,280" fill="none" stroke="black" strokeWidth="15" filter="blur(12px)" opacity="0.4" />
+            <path d="M 360,160 Q 320,220 280,280" fill="none" stroke="black" strokeWidth="15" filter="blur(12px)" opacity="0.4" />
+            
+            {/* Waist Bunching */}
+            <path d="M 120,400 Q 180,420 240,400" fill="none" stroke="black" strokeWidth="8" filter="blur(8px)" opacity="0.3" />
+            <path d="M 380,400 Q 320,420 260,400" fill="none" stroke="black" strokeWidth="8" filter="blur(8px)" opacity="0.3" />
 
-        {/* --- Logo Rendering --- */}
+            {/* Center Chest Highlights (to show pecs) */}
+            <ellipse cx="190" cy="180" rx="40" ry="30" fill="white" filter="blur(20px)" opacity="0.1" style={{ mixBlendMode: 'screen' }} />
+            <ellipse cx="310" cy="180" rx="40" ry="30" fill="white" filter="blur(20px)" opacity="0.1" style={{ mixBlendMode: 'screen' }} />
+        </g>
+
+
+        {/* --- LOGO --- */}
         {logoUrl && (
           <image 
             href={logoUrl} 
-            x={245} 
-            y={150} 
+            x={300} 
+            y={170} 
             height={40 * logoScale} 
             width={40 * logoScale} 
             preserveAspectRatio="xMidYMid meet"
-            transform="rotate(-5, 265, 170) skewY(5)"
+            transform="rotate(-5, 320, 190)"
             style={{ filter: 'drop-shadow(1px 1px 1px rgba(0,0,0,0.2))' }}
           />
         )}
 
-        {/* --- Crew Neck Specifics --- */}
-        {type === 'crew' && (
+
+        {/* --- NECK AREA --- */}
+        {type === 'crew' ? (
           <g>
-            <path d={crewNeckPath} fill={collarColor} filter="url(#innerDepth)" />
-            <path d={crewNeckPath} fill="url(#ribPattern)" opacity="0.3" />
+            {/* Back Neck Rib */}
+            <path d={`M 140,90 Q 250,${115 + (10 * collarSize)} 360,90`} stroke={collarColor} strokeWidth="14" fill="none" filter="brightness(0.8)" />
             
-            {/* Crew Neck Tipping */}
-            {tippingLines > 0 && renderCrewTipping()}
+            {/* Front Neck Rib (Main) */}
+            <path 
+                d={`M 140,90 Q 250,${115 + (20 * collarSize)} 360,90`} 
+                stroke={collarColor} 
+                strokeWidth="14" 
+                fill="none" 
+                strokeLinecap="round"
+            />
             
-            <path d="M45,148 L80,178" stroke="black" strokeWidth="1" strokeDasharray="3,2" opacity="0.2" />
-            <path d="M355,148 L320,178" stroke="black" strokeWidth="1" strokeDasharray="3,2" opacity="0.2" />
-            <path d="M100,450 Q200,465 300,450" stroke="black" strokeWidth="1" strokeDasharray="3,2" opacity="0.2" />
+            {/* Ribbing Texture */}
+            <path 
+                d={`M 140,90 Q 250,${115 + (20 * collarSize)} 360,90`} 
+                stroke="white" 
+                strokeWidth="14" 
+                fill="none" 
+                strokeDasharray="2,3" 
+                opacity="0.1" 
+                style={{ mixBlendMode: 'overlay' }}
+            />
+
+            {/* Tipping on Crew */}
+            {tippingLines > 0 && Array.from({length: tippingLines}).map((_, i) => {
+                 const offset = 4 * (i - (tippingLines-1)/2); // Center lines
+                 return (
+                    <path 
+                        key={i}
+                        d={`M 145,95 Q 250,${115 + (20 * collarSize) + offset} 355,95`}
+                        stroke={accentColor}
+                        strokeWidth="1.5"
+                        fill="none"
+                    />
+                 )
+             })}
           </g>
-        )}
-
-        {/* --- Polo Specifics --- */}
-        {type === 'polo' && (
+        ) : (
           <g>
-             {/* Cuffs */}
-             <path d={leftCuffPath} fill={collarColor} filter="url(#innerDepth)" />
-             <path d={leftCuffPath} fill="url(#ribPattern)" opacity="0.3" />
-             {/* Left Cuff Tipping */}
-             {tippingLines > 0 && renderCuffTipping(40, 150, 75, 180, cuffWidth)}
-
-             <path d={rightCuffPath} fill={collarColor} filter="url(#innerDepth)" />
-             <path d={rightCuffPath} fill="url(#ribPattern)" opacity="0.3" />
-             {/* Right Cuff Tipping */}
-             {tippingLines > 0 && renderCuffTipping(360, 150, 325, 180, -cuffWidth)}
-
-             {/* Placket */}
-             <path d={placketPath} fill={baseColor} filter="url(#innerDepth)" />
-             <rect x="188" y="200" width="24" height="8" fill="none" stroke="black" strokeWidth="0.5" opacity="0.3" />
+             {/* --- POLO PLACKET --- */}
+             <defs>
+                 <filter id="placketShadow"><feDropShadow dx="0" dy="1" stdDeviation="1" floodOpacity="0.3"/></filter>
+             </defs>
+             
+             {/* Placket Base */}
+             <path d="M 235,90 L 265,90 L 265,240 Q 250,245 235,240 Z" fill={baseColor} filter="url(#placketShadow)" />
+             <path d="M 235,90 L 265,90 L 265,240 Q 250,245 235,240 Z" fill="url(#fabricGrain)" opacity="0.5" />
+             
+             {/* Stitching */}
+             <rect x="238" y="230" width="24" height="2" fill="none" stroke="black" strokeWidth="0.5" opacity="0.3" />
+             <line x1="238" y1="90" x2="238" y2="230" stroke="black" strokeWidth="0.5" opacity="0.1" />
+             <line x1="262" y1="90" x2="262" y2="230" stroke="black" strokeWidth="0.5" opacity="0.1" />
 
              {/* Buttons */}
-             {[105, 145, 185].map((cy, i) => (
-                <g key={i} transform={`translate(0, ${i * 2})`}>
-                  <circle cx="200" cy={cy} r="5" fill="black" opacity="0.3" />
-                  <circle cx="200" cy={cy} r="5" fill={buttonColor} />
-                  <circle cx="200" cy={cy} r="4" fill="none" stroke="black" strokeOpacity="0.1" />
-                  <circle cx="198" cy={cy-2} r="2" fill="white" opacity="0.5" />
-                  <circle cx="199" cy={cy} r="0.5" fill="black" opacity="0.5" />
-                  <circle cx="201" cy={cy} r="0.5" fill="black" opacity="0.5" />
+             {[120, 160, 200].map((cy, i) => (
+                <g key={i} filter="url(#placketShadow)">
+                  <circle cx="250" cy={cy} r="6" fill={buttonColor} />
+                  <circle cx="250" cy={cy} r="5" fill="none" stroke="black" strokeOpacity="0.1" />
+                  <circle cx="248" cy={cy-2} r="2" fill="white" opacity="0.4" />
+                  {/* Thread */}
+                  <line x1="248" y1={cy} x2="252" y2={cy} stroke="#ccc" strokeWidth="1" />
+                  <line x1="250" y1={cy-2} x2="250" y2={cy+2} stroke="#ccc" strokeWidth="1" />
                 </g>
              ))}
 
-             {/* Collar */}
-             <g filter="url(#dropShadow)">
-                <path d={poloCollarLeft} fill={collarColor} />
-                <path d={poloCollarLeft} fill="url(#ribPattern)" opacity="0.1" />
-                {tippingLines > 0 && renderCollarTipping(poloCollarLeft, 'left')}
-                
-                <path d={poloCollarRight} fill={collarColor} />
-                <path d={poloCollarRight} fill="url(#ribPattern)" opacity="0.1" />
-                {tippingLines > 0 && renderCollarTipping(poloCollarRight, 'right')}
+             {/* --- POLO COLLAR (3D Folded) --- */}
+             <g filter="url(#softShadow)">
+                 {/* Collar Interior Shadow/Stand */}
+                 <path d="M 140,90 Q 250,110 360,90 L 360,100 Q 250,120 140,100 Z" fill="#000" opacity="0.2" />
+
+                 {/* Left Collar Leaf */}
+                 <path 
+                    d={`M 250,100 L 140,90 Q 110,70 180,110 L 235,160 Q 200,165 145,135 L 140,90`} 
+                    fill={collarColor} 
+                 />
+                 {/* Right Collar Leaf */}
+                 <path 
+                    d={`M 250,100 L 360,90 Q 390,70 320,110 L 265,160 Q 300,165 355,135 L 360,90`} 
+                    fill={collarColor} 
+                 />
+                 
+                 {/* Texture Overlay for Collar */}
+                 <path d={`M 250,100 L 140,90 Q 110,70 180,110 L 235,160 Q 200,165 145,135 L 140,90`} fill="url(#fabricGrain)" opacity="0.4" style={{ mixBlendMode: 'multiply' }}/>
+                 <path d={`M 250,100 L 360,90 Q 390,70 320,110 L 265,160 Q 300,165 355,135 L 360,90`} fill="url(#fabricGrain)" opacity="0.4" style={{ mixBlendMode: 'multiply' }}/>
+
+
+                 {/* Tipping on Collar */}
+                 {tippingLines > 0 && (
+                     <>
+                        {Array.from({length: tippingLines}).map((_, i) => {
+                             const w = i * 4;
+                             return (
+                                 <React.Fragment key={i}>
+                                    {/* Left Tip */}
+                                    <path d={`M 145,135 Q 200,165 235,160`} stroke={accentColor} strokeWidth="2" fill="none" strokeDasharray="0" transform={`translate(0, -${w})`} />
+                                    {/* Right Tip */}
+                                    <path d={`M 355,135 Q 300,165 265,160`} stroke={accentColor} strokeWidth="2" fill="none" strokeDasharray="0" transform={`translate(0, -${w})`} />
+                                 </React.Fragment>
+                             )
+                        })}
+                     </>
+                 )}
              </g>
-             
-             <path d="M115,70 Q200,90 285,70 L200,95 Z" fill="black" opacity="0.2" />
           </g>
         )}
 

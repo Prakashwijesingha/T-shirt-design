@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Gender, ShirtConfig } from '../types';
 import { generateTryOn } from '../services/geminiService';
-import { Loader2, Shirt, User, X, Download } from 'lucide-react';
+import { Loader2, Shirt, User, X, Download, Sparkles } from 'lucide-react';
 
 interface TryOnModalProps {
   isOpen: boolean;
@@ -26,7 +26,6 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({ isOpen, onClose, designI
     setResultImage(null);
 
     try {
-      // We now pass the entire config object
       const result = await generateTryOn(designImageBase64, selectedGender, config);
       setResultImage(result);
     } catch (err: any) {
@@ -48,44 +47,48 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({ isOpen, onClose, designI
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col md:flex-row border border-slate-200">
         
         {/* Left Side: Controls */}
-        <div className="w-full md:w-1/3 p-6 border-r border-slate-100 flex flex-col">
+        <div className="w-full md:w-1/3 p-6 border-b md:border-b-0 md:border-r border-slate-100 flex flex-col bg-slate-50/50">
           <div className="flex justify-between items-center mb-6 md:hidden">
-            <h3 className="text-xl font-bold">AI Virtual Try-On</h3>
+            <h3 className="text-xl font-bold text-slate-800">Virtual Try-On</h3>
             <button onClick={onClose}><X className="text-slate-400" /></button>
           </div>
           
           <div className="hidden md:block mb-6">
-            <h3 className="text-xl font-bold text-slate-800">AI Virtual Try-On</h3>
-            <p className="text-sm text-slate-500 mt-1">Visualize your design on a real model.</p>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-100 text-violet-700 text-xs font-bold mb-3">
+               <Sparkles className="w-3 h-3" /> AI Powered
+            </div>
+            <h3 className="text-2xl font-bold text-slate-800">Model View</h3>
+            <p className="text-sm text-slate-500 mt-1">See your design on a realistic human model.</p>
           </div>
 
           <div className="space-y-4 mb-8">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Select Model</label>
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => setSelectedGender('male')}
-                className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
+                className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${
                   selectedGender === 'male' 
-                  ? 'border-indigo-600 bg-indigo-50 text-indigo-700' 
-                  : 'border-slate-200 hover:border-slate-300'
+                  ? 'border-violet-600 bg-violet-50 text-violet-700 shadow-sm' 
+                  : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
                 }`}
               >
                 <User className="w-6 h-6" />
-                <span className="font-medium">Men</span>
+                <span className="font-medium text-sm">Men</span>
               </button>
               <button
                 onClick={() => setSelectedGender('female')}
-                className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${
+                className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${
                   selectedGender === 'female' 
-                  ? 'border-indigo-600 bg-indigo-50 text-indigo-700' 
-                  : 'border-slate-200 hover:border-slate-300'
+                  ? 'border-violet-600 bg-violet-50 text-violet-700 shadow-sm' 
+                  : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
                 }`}
               >
                 <User className="w-6 h-6" />
-                <span className="font-medium">Women</span>
+                <span className="font-medium text-sm">Women</span>
               </button>
             </div>
           </div>
@@ -93,12 +96,12 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({ isOpen, onClose, designI
           <button
             onClick={handleGenerate}
             disabled={loading || !designImageBase64}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3.5 px-4 bg-gradient-to-r from-violet-600 to-teal-500 hover:from-violet-700 hover:to-teal-600 disabled:opacity-50 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-200"
           >
             {loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                Generating...
+                Processing...
               </>
             ) : (
               <>
@@ -109,7 +112,7 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({ isOpen, onClose, designI
           </button>
           
           {error && (
-            <div className="mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg">
+            <div className="mt-4 p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg">
               {error}
             </div>
           )}
@@ -120,38 +123,42 @@ export const TryOnModal: React.FC<TryOnModalProps> = ({ isOpen, onClose, designI
         </div>
 
         {/* Right Side: Preview */}
-        <div className="w-full md:w-2/3 bg-slate-50 relative flex flex-col items-center justify-center p-6 min-h-[400px]">
-           <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-white/80 rounded-full hover:bg-white transition-colors hidden md:block z-10 shadow-sm">
-              <X className="w-5 h-5 text-slate-600" />
+        <div className="w-full md:w-2/3 bg-slate-100 relative flex flex-col items-center justify-center p-6 min-h-[400px] bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:20px_20px]">
+           <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-white rounded-full hover:bg-slate-100 transition-colors hidden md:block z-10 border border-slate-200 shadow-sm">
+              <X className="w-5 h-5 text-slate-500" />
            </button>
 
            {loading ? (
              <div className="text-center">
-               <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mx-auto mb-4" />
-               <p className="text-slate-500 font-medium">Creating your photoshoot...</p>
-               <p className="text-xs text-slate-400 mt-2">This may take a few seconds</p>
+               <div className="relative w-16 h-16 mx-auto mb-6">
+                 <div className="absolute inset-0 border-4 border-slate-200 rounded-full"></div>
+                 <div className="absolute inset-0 border-4 border-violet-500 rounded-full border-t-transparent animate-spin"></div>
+               </div>
+               <p className="text-slate-800 font-semibold text-lg">Creating photoshoot...</p>
+               <p className="text-sm text-slate-500 mt-1">AI is applying fabric physics & lighting</p>
              </div>
            ) : resultImage ? (
-             <div className="relative w-full h-full flex flex-col items-center">
+             <div className="relative w-full h-full flex flex-col items-center justify-center">
                 <img 
                   src={resultImage} 
                   alt="AI Generated Try On" 
-                  className="max-w-full max-h-[70vh] rounded-lg shadow-lg object-contain mb-6"
+                  className="max-w-full max-h-[60vh] md:max-h-[70vh] rounded-lg shadow-xl object-contain mb-6 border border-white bg-white"
                 />
                 <button 
                   onClick={handleDownload}
-                  className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-full hover:bg-slate-800 transition-colors shadow-lg"
+                  className="flex items-center gap-2 px-6 py-3 bg-slate-800 text-white font-semibold rounded-full hover:bg-slate-900 transition-colors shadow-lg"
                 >
-                  <Download className="w-5 h-5" />
-                  Download Photo
+                  <Download className="w-4 h-4" />
+                  Download High-Res
                 </button>
              </div>
            ) : (
              <div className="text-center text-slate-400">
-               <div className="w-20 h-20 bg-slate-200 rounded-full mx-auto mb-4 flex items-center justify-center">
-                 <User className="w-10 h-10 text-slate-400" />
+               <div className="w-20 h-20 bg-white rounded-full mx-auto mb-4 flex items-center justify-center border border-slate-200 shadow-sm">
+                 <User className="w-8 h-8 text-slate-300" />
                </div>
-               <p>Select a model and click generate to see the magic.</p>
+               <p className="font-medium text-slate-500">Ready to render</p>
+               <p className="text-sm">Select a model to begin</p>
              </div>
            )}
         </div>
